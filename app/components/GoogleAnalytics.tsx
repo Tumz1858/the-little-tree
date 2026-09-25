@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 declare global {
@@ -21,17 +21,14 @@ function track(eventName: string, parameters: Record<string, string>) {
 
 export default function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const pagePath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-
     track("page_view", {
-      page_path: pagePath,
+      page_path: pathname,
       page_title: document.title,
       language: pathname === "/en" || pathname.startsWith("/en/") ? "en" : "th",
     });
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
