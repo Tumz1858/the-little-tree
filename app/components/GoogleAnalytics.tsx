@@ -32,8 +32,13 @@ export default function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps)
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
-      const target = event.target instanceof Element ? event.target.closest("a") : null;
-      const linkUrl = target?.getAttribute("href");
+      const clickedElement = event.target instanceof Element
+        ? event.target
+        : event.target instanceof Node
+          ? event.target.parentElement
+          : null;
+      const anchor = clickedElement?.closest("a");
+      const linkUrl = anchor?.getAttribute("href");
 
       if (!linkUrl) return;
 
@@ -46,13 +51,18 @@ export default function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps)
         language,
       };
 
-      if (linkUrl.includes("lin.ee/")) track("line_click", parameters);
+      if (linkUrl.includes("lin.ee/")) {
+        window.gtag?.("event", "line_click", {
+          ...parameters,
+          transport_type: "beacon",
+        });
+      }
       if (linkUrl.includes("facebook.com/")) track("facebook_click", parameters);
       if (linkUrl.startsWith("tel:")) track("phone_click", parameters);
     }
 
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
+    document.addEventListener("click", handleClick, true);
+    return () => document.removeEventListener("click", handleClick, true);
   }, []);
 
   return (
