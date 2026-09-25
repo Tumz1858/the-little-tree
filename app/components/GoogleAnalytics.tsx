@@ -1,0 +1,77 @@
+"use client";
+
+import Script from "next/script";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+
+declare global {
+  interface Window {
+    dataLayer: Array<Record<string, unknown>>;
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+type GoogleAnalyticsProps = {
+  measurementId: string;
+};
+
+function track(eventName: string, parameters: Record<string, string>) {
+  window.gtag?.("event", eventName, parameters);
+}
+
+export default function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const pagePath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+
+    track("page_view", {
+      page_path: pagePath,
+      page_title: document.title,
+      language: pathname === "/en" || pathname.startsWith("/en/") ? "en" : "th",
+    });
+  }, [pathname, searchParams]);
+
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      const target = event.target instanceof Element ? event.target.closest("a") : null;
+      const linkUrl = target?.getAttribute("href");
+
+      if (!linkUrl) return;
+
+      const pagePath = `${window.location.pathname}${window.location.search}`;
+      const language = window.location.pathname === "/en" || window.location.pathname.startsWith("/en/") ? "en" : "th";
+      const parameters = {
+        page_path: pagePath,
+        page_title: document.title,
+        link_url: new URL(linkUrl, window.location.origin).href,
+        language,
+      };
+
+      if (linkUrl.includes("lin.ee/")) track("line_click", parameters);
+      if (linkUrl.includes("facebook.com/")) track("facebook_click", parameters);
+      if (linkUrl.startsWith("tel:")) track("phone_click", parameters);
+    }
+
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
+
+  return (
+    <>
+      <Script
+        src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function(){window.dataLayer.push(arguments);};
+          window.gtag('js', new Date());
+          window.gtag('config', '${measurementId}', { send_page_view: false });
+        `}
+      </Script>
+    </>
+  );
+}
